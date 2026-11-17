@@ -1,5 +1,7 @@
 # Multi-PDF RAG Chatbot
 
+[Open live demo](https://divyansh-multi-pdf-rag.streamlit.app/)
+
 A simple academic project to ask questions from multiple PDF files. The online version uses the Gemini API. Ollama is also available for local use.
 
 ## Technologies
@@ -20,7 +22,7 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Choose **Gemini API** and enter a key from [Google AI Studio](https://aistudio.google.com/apikey) in the sidebar. The key is held in your current session. Alternatively, set the `GEMINI_API_KEY` environment variable or create `.streamlit/secrets.toml` using the example file. The chat model defaults to `gemini-2.5-flash`; override `GEMINI_CHAT_MODEL` if needed for your account.
+Choose **Gemini API** and enter a key from [Google AI Studio](https://aistudio.google.com/apikey) in the sidebar. The key is held in your current session. Alternatively, set the `GEMINI_API_KEY` environment variable or create `.streamlit/secrets.toml` using the example file. The chat model defaults to `gemini-3.8-flash`; override `GEMINI_CHAT_MODEL` if needed for your account.
 
 ## Deploy a live demo
 1. Sign in at [Streamlit Community Cloud](https://share.streamlit.io/) with GitHub.
@@ -34,12 +36,12 @@ Choose **Gemini API** and enter a key from [Google AI Studio](https://aistudio.g
 
 ```toml
 GEMINI_API_KEY = "your-key-here"
-GEMINI_CHAT_MODEL = "gemini-2.5-flash"
+GEMINI_CHAT_MODEL = "gemini-3.8-flash"
 ```
 
 Never commit your actual API key. A shared owner key uses the owner's quota and may incur charges if billing is enabled. This academic app has no global usage limiter; visitor-supplied keys are the default approach.
 
-The deployment creates a `streamlit.app` URL that can be added to this README and the repository's About section. No live deployment has been verified yet.
+Live demo: https://divyansh-multi-pdf-rag.streamlit.app/
 
 ## Ollama option
 Install [Ollama](https://ollama.com/download), then run:
