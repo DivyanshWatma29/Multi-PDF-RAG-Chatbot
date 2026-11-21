@@ -1,7 +1,4 @@
 """Multi-PDF RAG chatbot using Gemini API or local Ollama models."""
-# Tutorial walkthrough: https://youtu.be/dXxQ0LR-3Hg
-# Read the flow in two parts: Process PDFs builds the search index, then
-# handle_userinput retrieves passages and asks the chat model to answer.
 import os
 import hashlib
 import streamlit as st
@@ -12,8 +9,7 @@ from api_models import GeminiEmbeddings, GeminiChat
 
 
 def setting(name, default=""):
-    # Credentials and model settings: read the environment first,
-    # then Streamlit secrets. The app does not load a .env file directly.
+    # Check the environment first, then Streamlit secrets.
     try:
         return os.getenv(name) or st.secrets.get(name, default)
     except FileNotFoundError:
@@ -26,9 +22,7 @@ EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
 
 def get_pdf_text(pdf_docs):
     """Read text from uploaded PDF files, preserving each source name."""
-    # PDF extraction: read each page separately so results can
-    # name the original file and page. The tutorial combines all page text.
-    # Pages without extractable text are skipped. Scanned pages need OCR.
+    # Keep the file name and page number with the text for citations.
     documents = []
     for pdf in pdf_docs:
         try:
@@ -47,9 +41,8 @@ def get_pdf_text(pdf_docs):
 
 
 def get_text_chunks(documents):
-    # Chunking: the recursive splitter tries natural text breaks.
-    # It uses a 1,000-character limit and aims for 200 characters of overlap
-    # to preserve context near boundaries. Each chunk keeps its page metadata.
+    # Split each page into smaller pieces so we can search for just the part we need.
+    # Some text carries over to the next piece so we don't lose context at the split.
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=1000, chunk_overlap=200
     )
@@ -66,9 +59,8 @@ def get_vectorstore(chunks, base_url, api_key="", provider="Gemini API"):
     else:
         from langchain_ollama import OllamaEmbeddings
         embeddings = OllamaEmbeddings(model=EMBED_MODEL, base_url=base_url)
-    # Indexing: the embedding model turns each chunk into a vector.
-    # FAISS searches those vectors later and returns the matching text with
-    # its filename and page. The index stays in this Streamlit session.
+    # Each piece becomes a list of numbers (an embedding).
+    # FAISS compares those lists to find text related to a question.
     return FAISS.from_texts(
         texts=[chunk for chunk, _ in chunks],
         embedding=embeddings,
@@ -77,8 +69,6 @@ def get_vectorstore(chunks, base_url, api_key="", provider="Gemini API"):
 
 
 def get_conversation_chain(base_url, api_key="", provider="Gemini API"):
-    # Chat model setup: the tutorial wraps retrieval and memory
-    # in a LangChain chain. Here we connect those steps in handle_userinput.
     if provider == "Gemini API":
         return GeminiChat(api_key, setting("GEMINI_CHAT_MODEL", "gemini-3.5-flash-lite"))
     from langchain_ollama import ChatOllama
@@ -94,8 +84,7 @@ def handle_userinput(question):
         st.info("Upload and process some PDFs first.")
         return
 
-    # Conversation memory: use the last six messages as context.
-    # Adding them to the search text helps with questions like 'What about the second one?'.
+    # Use recent messages to help search for follow-ups like "What about the second one?"
     recent_history = st.session_state.messages[-6:]
     search_question = question
     if recent_history:
@@ -106,8 +95,7 @@ def handle_userinput(question):
         search_question = f"{history}\nCurrent question: {question}"
 
     with st.spinner("Searching your PDFs..."):
-        # Retrieval: FAISS embeds the search text with the same
-        # embedding model used for the chunks and returns up to four matches.
+        # Look up the four closest matches across the uploaded PDFs.
         docs = st.session_state.vectorstore.similarity_search(search_question, k=4)
         context = "\n\n".join(
             f"[Source: {doc.metadata.get('source', 'unknown')}, "
@@ -118,8 +106,7 @@ def handle_userinput(question):
             f"{message['role']}: {message['content']}"
             for message in recent_history
         )
-        # Generation: send the selected excerpts, their source labels,
-        # recent messages and the question to the chat model in one prompt.
+        # Give the chat model the matches and their page numbers instead of the full PDFs.
         prompt = (
             "You answer questions based on the supplied PDF excerpts only. "
             "If the answer is not in the excerpts, say you could not find it "
@@ -145,8 +132,7 @@ def main():
     st.title("📚 Multi-PDF RAG Chatbot")
     st.caption("Ask questions about multiple PDFs using Gemini API or local Ollama models.")
 
-    # Session state: Streamlit reruns this script after interactions.
-    # Session state keeps the index and chat available between reruns.
+    # Streamlit reruns this file on a click. Keep the chat in session state so it survives.
     if "messages" not in st.session_state:
         st.session_state.messages = []
     if "sources" not in st.session_state:
@@ -170,7 +156,7 @@ def main():
         pdf_docs = st.file_uploader(
             "Upload PDF files", type=["pdf"], accept_multiple_files=True
         )
-        # Reset the old index whenever documents or credentials change.
+        # Clear the old search index and chat if the files or model connection change.
         signature = hashlib.sha256()
         signature.update((provider + api_key + base_url).encode())
         for pdf in pdf_docs or []:
@@ -200,8 +186,7 @@ def main():
                         st.error("Please use shorter PDFs (maximum 200 text chunks per upload).")
                     else:
                         try:
-                            # Process button: build the index and chat
-                            # client before storing either. Questions reuse them.
+                            # Build the search index here so each question can reuse it.
                             vectorstore = get_vectorstore(chunks, base_url, api_key, provider)
                             llm = get_conversation_chain(base_url, api_key, provider)
                             st.session_state.vectorstore = vectorstore
@@ -215,8 +200,6 @@ def main():
                                 "or ensure your local Ollama server is running. Try again shortly."
                             )
 
-    # Chat display: use Streamlit's built-in chat widgets.
-    # Each saved message carries its role, so it renders as user or assistant.
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.write(message["content"])
@@ -228,8 +211,7 @@ def main():
             st.rerun()
         except Exception as exc:
             st.error("Could not generate an answer. Check model access and API quota, then try again.")
-    # This list shows what retrieval returned for the latest answer.
-    # It can include passages the model did not use in its reply.
+    # Some search results may show here even if the answer didn't use them.
     if st.session_state.sources:
         with st.expander("Retrieved sources (may include unrelated passages)"):
             for source, page in dict.fromkeys(st.session_state.sources):
