@@ -12,7 +12,7 @@ from api_models import GeminiEmbeddings, GeminiChat
 
 
 def setting(name, default=""):
-    # Credentials and model settings (8:50): read the environment first,
+    # Credentials and model settings: read the environment first,
     # then Streamlit secrets. The app does not load a .env file directly.
     try:
         return os.getenv(name) or st.secrets.get(name, default)
@@ -26,7 +26,7 @@ EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
 
 def get_pdf_text(pdf_docs):
     """Read text from uploaded PDF files, preserving each source name."""
-    # PDF extraction (19:46): read each page separately so results can
+    # PDF extraction: read each page separately so results can
     # name the original file and page. The tutorial combines all page text.
     # Pages without extractable text are skipped. Scanned pages need OCR.
     documents = []
@@ -47,7 +47,7 @@ def get_pdf_text(pdf_docs):
 
 
 def get_text_chunks(documents):
-    # Chunking (24:41): the recursive splitter tries natural text breaks.
+    # Chunking: the recursive splitter tries natural text breaks.
     # It uses a 1,000-character limit and aims for 200 characters of overlap
     # to preserve context near boundaries. Each chunk keeps its page metadata.
     splitter = RecursiveCharacterTextSplitter(
@@ -66,7 +66,7 @@ def get_vectorstore(chunks, base_url, api_key="", provider="Gemini API"):
     else:
         from langchain_ollama import OllamaEmbeddings
         embeddings = OllamaEmbeddings(model=EMBED_MODEL, base_url=base_url)
-    # Indexing (29:21): the embedding model turns each chunk into a vector.
+    # Indexing: the embedding model turns each chunk into a vector.
     # FAISS searches those vectors later and returns the matching text with
     # its filename and page. The index stays in this Streamlit session.
     return FAISS.from_texts(
@@ -77,7 +77,7 @@ def get_vectorstore(chunks, base_url, api_key="", provider="Gemini API"):
 
 
 def get_conversation_chain(base_url, api_key="", provider="Gemini API"):
-    # Chat model setup (40:50): the tutorial wraps retrieval and memory
+    # Chat model setup: the tutorial wraps retrieval and memory
     # in a LangChain chain. Here we connect those steps in handle_userinput.
     if provider == "Gemini API":
         return GeminiChat(api_key, setting("GEMINI_CHAT_MODEL", "gemini-3.5-flash-lite"))
@@ -94,7 +94,7 @@ def handle_userinput(question):
         st.info("Upload and process some PDFs first.")
         return
 
-    # Conversation memory (42:27): use the last six messages as context.
+    # Conversation memory: use the last six messages as context.
     # Adding them to the search text helps with questions like 'What about the second one?'.
     recent_history = st.session_state.messages[-6:]
     search_question = question
@@ -106,7 +106,7 @@ def handle_userinput(question):
         search_question = f"{history}\nCurrent question: {question}"
 
     with st.spinner("Searching your PDFs..."):
-        # Retrieval (14:25): FAISS embeds the search text with the same
+        # Retrieval: FAISS embeds the search text with the same
         # embedding model used for the chunks and returns up to four matches.
         docs = st.session_state.vectorstore.similarity_search(search_question, k=4)
         context = "\n\n".join(
@@ -118,7 +118,7 @@ def handle_userinput(question):
             f"{message['role']}: {message['content']}"
             for message in recent_history
         )
-        # Generation (15:27): send the selected excerpts, their source labels,
+        # Generation: send the selected excerpts, their source labels,
         # recent messages and the question to the chat model in one prompt.
         prompt = (
             "You answer questions based on the supplied PDF excerpts only. "
@@ -145,7 +145,7 @@ def main():
     st.title("📚 Multi-PDF RAG Chatbot")
     st.caption("Ask questions about multiple PDFs using Gemini API or local Ollama models.")
 
-    # Session state (46:56): Streamlit reruns this script after interactions.
+    # Session state: Streamlit reruns this script after interactions.
     # Session state keeps the index and chat available between reruns.
     if "messages" not in st.session_state:
         st.session_state.messages = []
@@ -200,7 +200,7 @@ def main():
                         st.error("Please use shorter PDFs (maximum 200 text chunks per upload).")
                     else:
                         try:
-                            # Process button (17:14): build the index and chat
+                            # Process button: build the index and chat
                             # client before storing either. Questions reuse them.
                             vectorstore = get_vectorstore(chunks, base_url, api_key, provider)
                             llm = get_conversation_chain(base_url, api_key, provider)
@@ -215,7 +215,7 @@ def main():
                                 "or ensure your local Ollama server is running. Try again shortly."
                             )
 
-    # Chat display (50:22 onward): use Streamlit's built-in chat widgets.
+    # Chat display: use Streamlit's built-in chat widgets.
     # Each saved message carries its role, so it renders as user or assistant.
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
