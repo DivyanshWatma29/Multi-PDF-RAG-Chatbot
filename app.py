@@ -64,7 +64,7 @@ def get_vectorstore(chunks, base_url, api_key="", provider="Gemini API"):
 
 def get_conversation_chain(base_url, api_key="", provider="Gemini API"):
     if provider == "Gemini API":
-        return GeminiChat(api_key, setting("GEMINI_CHAT_MODEL", "gemini-2.5-flash"))
+        return GeminiChat(api_key, setting("GEMINI_CHAT_MODEL", "gemini-3.5-flash-lite"))
     from langchain_ollama import ChatOllama
     return ChatOllama(
         model=CHAT_MODEL,
