@@ -5,8 +5,6 @@ from google.genai import types
 from langchain_core.embeddings import Embeddings
 
 
-# The tutorial compares OpenAI and Hugging Face. This adapter supplies Gemini
-# embeddings for the same FAISS workflow. Ollama is wired separately in app.py.
 class GeminiEmbeddings(Embeddings):
     def __init__(self, api_key):
         self.client = genai.Client(api_key=api_key, http_options=types.HttpOptions(timeout=60000))
@@ -21,15 +19,14 @@ class GeminiEmbeddings(Embeddings):
         return [item.values for item in result.embeddings]
 
     def embed_documents(self, texts):
-        # Build one vector per chunk in batches. Keep the vector order aligned
-        # with the original chunks so each result points to the right page.
+        # Send 20 pieces at a time and keep the results in the same order.
         vectors = []
         for start in range(0, len(texts), 20):
             vectors.extend(self._embed(texts[start:start + 20], "RETRIEVAL_DOCUMENT"))
         return vectors
 
     def embed_query(self, text):
-        # A search query uses the same model with a query-specific task hint.
+        # Use the same embedding model for the search text as for the PDF text.
         return self._embed([text], "RETRIEVAL_QUERY")[0]
 
 
@@ -39,14 +36,11 @@ class GeminiChat:
         self.model = model
 
     def invoke(self, prompt):
-        # Send the finished prompt to Gemini. This adapter handles generation.
-        # The calling code has already retrieved the relevant PDF excerpts.
         response = self.client.models.generate_content(
             model=self.model, contents=prompt,
             config=types.GenerateContentConfig(temperature=0.1, max_output_tokens=2048),
         )
         if not response.text:
             raise ValueError("The model did not return a text answer.")
-        # Match the .content interface of Ollama's chat reply so the UI can
-        # display either provider's answer in the same way.
+        # The app reads reply.content from both Gemini and Ollama.
         return SimpleNamespace(content=response.text)
