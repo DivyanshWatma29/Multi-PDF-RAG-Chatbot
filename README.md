@@ -22,7 +22,7 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Choose **Gemini API** and enter a key from [Google AI Studio](https://aistudio.google.com/apikey) in the sidebar. The key is held in your current session. Alternatively, set the `GEMINI_API_KEY` environment variable or create `.streamlit/secrets.toml` using the example file. The chat model defaults to `gemini-3.8-flash`; override `GEMINI_CHAT_MODEL` if needed for your account.
+Choose **Gemini API** and enter a key from [Google AI Studio](https://aistudio.google.com/apikey) in the sidebar. The key is held in your current session. Alternatively, set the `GEMINI_API_KEY` environment variable or create `.streamlit/secrets.toml` using the example file. The chat model defaults to `gemini-3.5-flash-lite`; override `GEMINI_CHAT_MODEL` if needed for your account.
 
 ## Deploy a live demo
 1. Sign in at [Streamlit Community Cloud](https://share.streamlit.io/) with GitHub.
@@ -36,7 +36,7 @@ Choose **Gemini API** and enter a key from [Google AI Studio](https://aistudio.g
 
 ```toml
 GEMINI_API_KEY = "your-key-here"
-GEMINI_CHAT_MODEL = "gemini-3.8-flash"
+GEMINI_CHAT_MODEL = "gemini-3.5-flash-lite"
 ```
 
 Never commit your actual API key. A shared owner key uses the owner's quota and may incur charges if billing is enabled. This academic app has no global usage limiter; visitor-supplied keys are the default approach.
